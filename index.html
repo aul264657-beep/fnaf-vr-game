@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNAF VR - Five Nights at Freddy's VR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-element {
+            position: absolute;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px #0f0;
+        }
+
+        #power-display {
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+        }
+
+        #timer-display {
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+        }
+
+        #night-display {
+            top: 70px;
+            right: 20px;
+            font-size: 18px;
+        }
+
+        #camera-feed {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 400px;
+            border: 3px solid #0f0;
+            background-color: #001a00;
+            box-shadow: 0 0 30px #0f0;
+        }
+
+        #camera-feed.active {
+            display: block;
+        }
+
+        #camera-feed.hidden {
+            display: none;
+        }
+
+        .camera-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 16px;
+            color: #0f0;
+        }
+
+        .animatronic-indicator {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .animatronic-indicator.freddy {
+            background-color: rgba(139, 69, 19, 0.8);
+            border: 2px solid #8b4513;
+            color: #fff;
+        }
+
+        .animatronic-indicator.bonnie {
+            background-color: rgba(75, 0, 130, 0.8);
+            border: 2px solid #4b0082;
+            color: #fff;
+        }
+
+        .animatronic-indicator.chica {
+            background-color: rgba(255, 215, 0, 0.8);
+            border: 2px solid #ffd700;
+            color: #000;
+        }
+
+        .animatronic-indicator.foxy {
+            background-color: rgba(220, 20, 60, 0.8);
+            border: 2px solid #dc143c;
+            color: #fff;
+        }
+
+        #threat-meter {
+            bottom: 20px;
+            left: 20px;
+            font-size: 18px;
+        }
+
+        .threat-bar {
+            width: 300px;
+            height: 20px;
+            border: 2px solid #0f0;
+            margin-top: 10px;
+            background-color: #001a00;
+        }
+
+        .threat-fill {
+            height: 100%;
+            background-color: #0f0;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        #controls-display {
+            bottom: 20px;
+            right: 20px;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .control-line {
+            margin: 5px 0;
+        }
+
+        #main-menu {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: all;
+        }
+
+        #main-menu.hidden {
+            display: none;
+            pointer-events: none;
+        }
+
+        .menu-title {
+            font-size: 72px;
+            margin-bottom: 20px;
+            color: #ff4444;
+            text-shadow: 0 0 20px #ff0000, 0 0 30px #ff6666;
+            font-weight: bold;
+            letter-spacing: 3px;
+        }
+
+        .menu-subtitle {
+            font-size: 24px;
+            color: #0f0;
+            margin-bottom: 50px;
+            text-shadow: 0 0 10px #0f0;
+        }
+
+        .menu-button {
+            font-size: 20px;
+            padding: 15px 40px;
+            margin: 15px;
+            background-color: #1a3a1a;
+            color: #0f0;
+            border: 2px solid #0f0;
+            cursor: pointer;
+            text-shadow: 0 0 10px #0f0;
+            box-shadow: 0 0 10px #0f0;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+        }
+
+        .menu-button:hover {
+            background-color: #0f0;
+            color: #000;
+            box-shadow: 0 0 20px #0f0;
+        }
+
+        #game-over-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: all;
+        }
+
+        #game-over-screen.hidden {
+            display: none;
+            pointer-events: none;
+        }
+
+        .game-over-title {
+            font-size: 64px;
+            color: #ff0000;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px #ff0000;
+            font-weight: bold;
+        }
+
+        .game-over-text {
+            font-size: 24px;
+            color: #0f0;
+            margin: 20px;
+            text-shadow: 0 0 10px #0f0;
+        }
+
+        .night-clear {
+            font-size: 48px;
+            color: #00ff00;
+            margin: 30px;
+            text-shadow: 0 0 20px #00ff00;
+        }
+
+        .controls-hint {
+            font-size: 14px;
+            color: #888;
+            margin-top: 40px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="main-menu">
+            <div class="menu-title">☠ FNAF VR ☠</div>
+            <div class="menu-subtitle">Five Nights at Freddy's</div>
+            <button class="menu-button" onclick="startGame()">START GAME</button>
+            <button class="menu-button" onclick="toggleSettings()">SETTINGS</button>
+            <div class="controls-hint">
+                <strong>CONTROLS:</strong><br>
+                Mouse: Look Around<br>
+                WASD: Move<br>
+                SPACE: Sprint<br>
+                1-4: Switch Cameras<br>
+                E: Use Door<br>
+                Q: Toggle Lights
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="hidden">
+            <div class="game-over-title">GAME OVER</div>
+            <div id="game-over-message" class="game-over-text"></div>
+            <button class="menu-button" onclick="returnToMenu()">RETURN TO MENU</button>
+        </div>
+
+        <div id="hud">
+            <div id="power-display" class="hud-element">POWER: 100%</div>
+            <div id="timer-display" class="hud-element">TIME: 8:00</div>
+            <div id="night-display" class="hud-element">NIGHT: 1</div>
+            
+            <div id="camera-feed" class="hud-element hidden">
+                <div class="camera-label">CAM: OFFICE</div>
+                <canvas id="camera-canvas" width="600" height="400" style="width: 100%; height: 100%;"></canvas>
+            </div>
+
+            <div id="threat-meter" class="hud-element">
+                <div>THREAT LEVEL</div>
+                <div class="threat-bar">
+                    <div class="threat-fill" id="threat-fill"></div>
+                </div>
+            </div>
+
+            <div id="controls-display" class="hud-element">
+                <div class="control-line">POWER: [P]</div>
+                <div class="control-line">DOORS: [D]</div>
+                <div class="control-line">CAMERA: [C]</div>
+                <div class="control-line">LIGHTS: [L]</div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" style="display: none;"></canvas>
+    </div>
+
+    <script>
+        // FNAF VR Game - HTML5/Three.js Implementation
+        
+        class FNAFGame {
+            constructor() {
+                this.gameState = 'menu'; // menu, playing, gameOver
+                this.night = 1;
+                this.timeRemaining = 480; // 8 minutes
+                this.power = 100;
+                this.maxPower = 100;
+                this.powerDrainRate = 0.15;
+                this.isPowerOut = false;
+                this.threatLevel = 0;
+                this.cameraActive = false;
+                this.currentCamera = 0;
+                
+                // Animatronic states
+                this.animatronics = {
+                    freddy: { position: [0, 0], state: 'idle', threat: 0 },
+                    bonnie: { position: [5, 0], state: 'idle', threat: 0 },
+                    chica: { position: [-5, 0], state: 'idle', threat: 0 },
+                    foxy: { position: [0, -5], state: 'idle', threat: 0 }
+                };
+
+                this.cameras = [
+                    { name: 'OFFICE', image: 'Office View' },
+                    { name: 'CAM_1', image: 'Main Hall' },
+                    { name: 'CAM_2', image: 'West Wing' },
+                    { name: 'CAM_3', image: 'East Wing' }
+                ];
+
+                this.setupEventListeners();
+                this.update();
+            }
+
+            setupEventListeners() {
+                document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+                document.addEventListener('keyup', (e) => this.handleKeyUp(e));
+            }
+
+            handleKeyDown(e) {
+                if (this.gameState !== 'playing') return;
+
+                switch(e.key.toUpperCase()) {
+                    case 'P':
+                        this.togglePower();
+                        break;
+                    case 'C':
+                        this.toggleCamera();
+                        break;
+                    case 'D':
+                        this.toggleDoors();
+                        break;
+                    case 'L':
+                        this.toggleLights();
+                        break;
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                        this.switchCamera(parseInt(e.key) - 1);
+                        break;
+                }
+            }
+
+            handleKeyUp(e) {}
+
+            togglePower() {
+                if (this.power > 10) {
+                    this.power -= 10;
+                    if (this.power <= 0) {
+                        this.isPowerOut = true;
+                        this.threatLevel += 0.3;
+                    }
+                }
+            }
+
+            toggleCamera() {
+                this.cameraActive = !this.cameraActive;
+                document.getElementById('camera-feed').classList.toggle('hidden', !this.cameraActive);
+                if (!this.cameraActive) {
+                    this.power -= 2; // Power drain for camera usage
+                }
+            }
+
+            toggleDoors() {
+                if (this.power > 5) {
+                    this.power -= 5;
+                }
+            }
+
+            toggleLights() {
+                if (this.power > 3) {
+                    this.power -= 3;
+                    this.threatLevel -= 0.1;
+                }
+            }
+
+            switchCamera(camIndex) {
+                if (this.cameraActive) {
+                    this.currentCamera = camIndex;
+                    document.querySelector('.camera-label').textContent = 
+                        `CAM: ${this.cameras[camIndex].name}`;
+                }
+            }
+
+            updateAnimatronics() {
+                const names = Object.keys(this.animatronics);
+                names.forEach(name => {
+                    const anim = this.animatronics[name];
+                    
+                    // Simple AI behavior
+                    if (this.isPowerOut) {
+                        anim.state = 'aggressive';
+                        anim.threat = Math.min(1, anim.threat + 0.02);
+                    } else if (Math.random() < 0.05) {
+                        anim.state = anim.state === 'idle' ? 'moving' : 'idle';
+                    }
+
+                    if (anim.state === 'aggressive') {
+                        anim.threat = Math.min(1, anim.threat + 0.01);
+                    }
+                });
+
+                // Calculate overall threat level
+                let totalThreat = Object.values(this.animatronics).reduce((sum, a) => sum + a.threat, 0);
+                this.threatLevel = Math.min(1, totalThreat / 4);
+            }
+
+            update() {
+                if (this.gameState === 'playing') {
+                    // Update time
+                    this.timeRemaining -= 1/60; // Assuming ~60fps
+                    
+                    // Update power
+                    if (!this.isPowerOut) {
+                        this.power -= this.powerDrainRate / 60;
+                        this.power = Math.max(0, this.power);
+                    }
+
+                    if (this.power <= 0 && !this.isPowerOut) {
+                        this.isPowerOut = true;
+                    }
+
+                    // Update AI
+                    this.updateAnimatronics();
+
+                    // Check win/lose conditions
+                    if (this.timeRemaining <= 0) {
+                        this.endNight(true);
+                    }
+
+                    if (this.threatLevel >= 1) {
+                        this.endNight(false);
+                    }
+
+                    // Update HUD
+                    this.updateHUD();
+                }
+
+                requestAnimationFrame(() => this.update());
+            }
+
+            updateHUD() {
+                // Power display
+                document.getElementById('power-display').textContent = 
+                    `POWER: ${Math.max(0, Math.round(this.power))}%`;
+
+                // Timer display
+                const minutes = Math.floor(this.timeRemaining / 60);
+                const seconds = Math.floor(this.timeRemaining % 60);
+                document.getElementById('timer-display').textContent = 
+                    `TIME: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                // Night display
+                document.getElementById('night-display').textContent = 
+                    `NIGHT: ${this.night}`;
+
+                // Threat meter
+                const threatPercent = Math.round(this.threatLevel * 100);
+                document.getElementById('threat-fill').style.width = threatPercent + '%';
+
+                // Camera feed simulation
+                if (this.cameraActive) {
+                    const canvas = document.getElementById('camera-canvas');
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#001a00';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    ctx.fillStyle = '#0f0';
+                    ctx.font = 'bold 24px Courier New';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.cameras[this.currentCamera].image, canvas.width/2, canvas.height/2);
+                }
+            }
+
+            endNight(survived) {
+                this.gameState = 'gameOver';
+                const screen = document.getElementById('game-over-screen');
+                const message = document.getElementById('game-over-message');
+                
+                if (survived) {
+                    message.textContent = `NIGHT ${this.night} SURVIVED!`;
+                    message.style.color = '#00ff00';
+                    this.night++;
+                } else {
+                    message.textContent = `YOU WERE CAUGHT!`;
+                    message.style.color = '#ff0000';
+                }
+
+                screen.classList.remove('hidden');
+            }
+
+            start() {
+                this.gameState = 'playing';
+                this.night = 1;
+                this.timeRemaining = 480;
+                this.power = 100;
+                this.threatLevel = 0;
+                this.isPowerOut = false;
+                
+                // Reset animatronics
+                Object.keys(this.animatronics).forEach(key => {
+                    this.animatronics[key] = { position: [0, 0], state: 'idle', threat: 0 };
+                });
+
+                document.getElementById('main-menu').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+            }
+        }
+
+        // Global game instance
+        let game;
+
+        window.addEventListener('load', () => {
+            game = new FNAFGame();
+        });
+
+        function startGame() {
+            game.start();
+        }
+
+        function toggleSettings() {
+            alert('Settings menu coming soon!\n\nDifficulty levels will be available here.');
+        }
+
+        function returnToMenu() {
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            game.start();
+            game.gameState = 'menu';
+        }
+    </script>
+</body>
+</html>
