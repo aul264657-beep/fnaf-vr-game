@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNAF VR - Five Nights at Freddy's VR Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-viewport">
+        <div id="main-menu">
+            <div class="menu-title">☠ FNAF VR ☠</div>
+            <div class="menu-subtitle">Five Nights at Freddy's - Virtual Reality</div>
+            <button class="menu-button" onclick="startGame()">► START GAME</button>
+            <button class="menu-button" onclick="showDifficulty()">⚙ DIFFICULTY</button>
+            <button class="menu-button" onclick="showControls()">? CONTROLS</button>
+            <div class="controls-info" style="margin-top: 50px; color: #0f0;">
+                <strong>HOW TO PLAY:</strong><br>
+                Survive 6 nights against animatronics<br>
+                Manage limited power supply<br>
+                Monitor security cameras<br>
+                Control doors and lights<br><br>
+                <strong>CONTROLS:</strong><br>
+                P - Use Power<br>
+                C - Toggle Camera<br>
+                D - Close Doors<br>
+                L - Toggle Lights<br>
+                1-4 - Switch Camera<br>
+                ESC - Menu
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="hidden">
+            <div class="game-over-title" id="game-over-title">GAME OVER</div>
+            <div id="game-over-message" class="game-over-text"></div>
+            <div id="game-over-stats" style="font-size: 18px; margin: 30px; text-align: center;"></div>
+            <button class="menu-button" onclick="returnToMenu()">← RETURN TO MENU</button>
+            <button class="menu-button" onclick="continueGame()">↻ TRY AGAIN</button>
+        </div>
+
+        <div class="hud-container">
+            <div id="top-left-panel" class="hud-element info-panel" style="top: 20px; left: 20px;">
+                <div class="info-panel-title">POWER SYSTEMS</div>
+                <div class="info-line">
+                    <span class="info-label">POWER:</span>
+                    <span class="info-value" id="power-display">100%</span>
+                </div>
+                <div class="threat-bar">
+                    <div class="threat-fill" id="threat-fill" style="width: 0%"></div>
+                </div>
+                <div class="info-line" style="margin-top: 15px;">
+                    <span class="info-label">STATUS:</span>
+                    <span class="info-value" id="status-display">OPERATIONAL</span>
+                </div>
+            </div>
+
+            <div id="top-right-panel" class="hud-element info-panel" style="top: 20px; right: 20px;">
+                <div class="info-panel-title">NIGHT PROGRESS</div>
+                <div class="info-line">
+                    <span class="info-label">NIGHT:</span>
+                    <span class="info-value" id="night-display">1</span>
+                </div>
+                <div class="info-line">
+                    <span class="info-label">TIME:</span>
+                    <span class="info-value" id="timer-display">08:00</span>
+                </div>
+                <div class="info-line">
+                    <span class="info-label">SURVIVED:</span>
+                    <span class="info-value" id="survived-display">0 nights</span>
+                </div>
+            </div>
+
+            <div id="camera-panel" class="hud-element camera-feed hidden" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                <div class="camera-label" id="camera-label">CAM: OFFICE</div>
+                <canvas id="camera-canvas" width="500" height="350"></canvas>
+            </div>
+
+            <div id="animatronic-status-panel" class="hud-element info-panel" style="bottom: 20px; left: 20px;">
+                <div class="info-panel-title">ANIMATRONIC STATUS</div>
+                <div class="animatronic-status" id="animatronic-status"></div>
+            </div>
+
+            <div id="controls-panel" class="hud-element info-panel" style="bottom: 20px; right: 20px;">
+                <div class="info-panel-title">CONTROLS</div>
+                <div class="controls-info">
+                    <div>P - Power System</div>
+                    <div>C - Cameras</div>
+                    <div>D - Doors</div>
+                    <div>L - Lights</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game-engine.js"></script>
+    <script>
+        let gameEngine;
+        let animationFrameId;
+        let cameraActive = false;
+        let currentCamera = 0;
+        let difficulty = 'normal';
+
+        function startGame() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            
+            gameEngine = new FNAFGameEngine();
+            gameEngine.startNight();
+            
+            startGameLoop();
+        }
+
+        function startGameLoop() {
+            function loop() {
+                gameEngine.update();
+                updateHUD();
+                animationFrameId = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        function updateHUD() {
+            const state = gameEngine.gameState;
+            
+            // Power display
+            const powerPercent = Math.max(0, Math.round(state.power));
+            document.getElementById('power-display').textContent = powerPercent + '%';
+            
+            // Status
+            const status = state.isPowerOut ? 'POWER OUT' : 'OPERATIONAL';
+            const statusColor = state.isPowerOut ? '#ff0000' : '#0f0';
+            const statusDisplay = document.getElementById('status-display');
+            statusDisplay.textContent = status;
+            statusDisplay.style.color = statusColor;
+            
+            // Timer
+            const minutes = Math.floor(state.timeRemaining / 60);
+            const seconds = Math.floor(state.timeRemaining % 60);
+            document.getElementById('timer-display').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Night
+            document.getElementById('night-display').textContent = state.currentNight;
+            
+            // Threat meter
+            const threatPercent = Math.round(state.threat * 100);
+            document.getElementById('threat-fill').style.width = threatPercent + '%';
+            
+            // Animatronic status
+            updateAnimatronicStatus();
+            
+            // Camera feed
+            if (cameraActive) {
+                updateCameraFeed();
+            }
+        }
+
+        function updateAnimatronicStatus() {
+            const container = document.getElementById('animatronic-status');
+            container.innerHTML = '';
+            
+            gameEngine.animatronics.forEach(anim => {
+                const card = document.createElement('div');
+                card.className = 'animatronic-card';
+                const threatPercent = Math.round(anim.threatLevel * 100);
+                const stateDisplay = anim.state.toUpperCase();
+                card.innerHTML = `
+                    <div class="animatronic-name">${anim.name}</div>
+                    <div class="animatronic-threat">State: ${stateDisplay}</div>
+                    <div class="animatronic-threat">Threat: ${threatPercent}%</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateCameraFeed() {
+            const canvas = document.getElementById('camera-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Draw camera feed background
+            ctx.fillStyle = '#001a00';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw scan lines
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
+            for (let i = 0; i < canvas.height; i += 10) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+            
+            // Draw camera info
+            ctx.fillStyle = '#0f0';
+            ctx.font = 'bold 20px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText(gameEngine.cameras[currentCamera].name, canvas.width / 2, canvas.height / 2);
+            
+            // Draw motion indicator
+            const cam = gameEngine.cameras[currentCamera];
+            if (cam.hasMotion) {
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+                ctx.fillStyle = '#ff0000';
+                ctx.font = 'bold 16px Courier New';
+                ctx.fillText('⚠ MOTION DETECTED', canvas.width / 2, 30);
+            }
+        }
+
+        function toggleCamera() {
+            if (gameEngine.usePower(2)) {
+                cameraActive = !cameraActive;
+                document.getElementById('camera-panel').classList.toggle('hidden', !cameraActive);
+                if (cameraActive) {
+                    updateCameraFeed();
+                }
+            }
+        }
+
+        function switchCamera(index) {
+            if (cameraActive && index < gameEngine.cameras.length) {
+                currentCamera = index;
+                document.getElementById('camera-label').textContent = 
+                    'CAM: ' + gameEngine.cameras[index].name;
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (gameEngine && gameEngine.gameState.isGameActive) {
+                switch(e.key.toUpperCase()) {
+                    case 'P':
+                        // Toggle power (dummy function)
+                        break;
+                    case 'C':
+                        toggleCamera();
+                        break;
+                    case 'D':
+                        gameEngine.toggleDoors();
+                        break;
+                    case 'L':
+                        gameEngine.toggleLights();
+                        break;
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                        switchCamera(parseInt(e.key) - 1);
+                        break;
+                    case 'ESCAPE':
+                        pauseGame();
+                        break;
+                }
+            }
+        });
+
+        function pauseGame() {
+            if (gameEngine && gameEngine.gameState.isGameActive) {
+                cancelAnimationFrame(animationFrameId);
+                document.getElementById('main-menu').classList.remove('hidden');
+            }
+        }
+
+        function returnToMenu() {
+            cancelAnimationFrame(animationFrameId);
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+        }
+
+        function continueGame() {
+            startGame();
+        }
+
+        function showDifficulty() {
+            alert('Difficulty Settings\n\n[EASY] - Power drains slower, animatronics less aggressive\n[NORMAL] - Balanced gameplay\n[HARD] - Power drains fast, animatronics more aggressive');
+        }
+
+        function showControls() {
+            alert('CONTROLS\n\nP - Use Power\nC - Toggle Camera\nD - Close Doors\nL - Toggle Lights\n1-4 - Switch Camera\nESC - Menu');
+        }
+    </script>
+</body>
+</html>

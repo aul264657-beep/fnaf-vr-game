@@ -1,0 +1,331 @@
+/* FNAF VR Game - Main Stylesheet */
+
+:root {
+    --primary-color: #0f0;
+    --danger-color: #ff0000;
+    --bg-dark: #000;
+    --bg-darker: #0a0a0a;
+    --text-glow: 0 0 10px #0f0;
+    --danger-glow: 0 0 20px #ff0000;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background-color: var(--bg-dark);
+    color: var(--primary-color);
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
+
+#game-viewport {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+/* HUD Styling */
+.hud-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.hud-element {
+    position: absolute;
+    color: var(--primary-color);
+    text-shadow: var(--text-glow);
+    pointer-events: auto;
+}
+
+.info-panel {
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid var(--primary-color);
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.info-panel-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+    text-transform: uppercase;
+}
+
+.info-line {
+    font-size: 14px;
+    margin: 5px 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.info-label {
+    min-width: 100px;
+}
+
+.info-value {
+    color: var(--primary-color);
+    text-shadow: var(--text-glow);
+    margin-left: 20px;
+}
+
+/* Threat Meter */
+.threat-bar {
+    width: 250px;
+    height: 25px;
+    border: 2px solid var(--primary-color);
+    margin-top: 10px;
+    background-color: rgba(0, 26, 0, 0.8);
+    position: relative;
+}
+
+.threat-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0f0 0%, #ffff00 50%, #ff0000 100%);
+    width: 0%;
+    transition: width 0.2s ease;
+    box-shadow: 0 0 10px currentColor;
+}
+
+/* Camera Feed */
+.camera-feed {
+    width: 500px;
+    height: 350px;
+    border: 3px solid var(--primary-color);
+    background-color: rgba(0, 26, 0, 0.9);
+    box-shadow: 0 0 30px var(--primary-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-feed canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.camera-label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 14px;
+    color: var(--primary-color);
+    text-shadow: var(--text-glow);
+}
+
+/* Controls Display */
+.controls-info {
+    font-size: 12px;
+    line-height: 1.8;
+    color: #888;
+}
+
+/* Menu Styles */
+#main-menu {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, #1a1a2e 0%, var(--bg-darker) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    pointer-events: all;
+}
+
+#main-menu.hidden {
+    display: none;
+    pointer-events: none;
+}
+
+.menu-title {
+    font-size: 72px;
+    margin-bottom: 20px;
+    color: var(--danger-color);
+    text-shadow: var(--danger-glow), 0 0 30px #ff6666;
+    font-weight: bold;
+    letter-spacing: 3px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        text-shadow: 0 0 20px var(--danger-color), 0 0 30px #ff6666;
+    }
+    50% {
+        text-shadow: 0 0 30px var(--danger-color), 0 0 40px #ff6666;
+    }
+}
+
+.menu-subtitle {
+    font-size: 24px;
+    color: var(--primary-color);
+    margin-bottom: 50px;
+    text-shadow: var(--text-glow);
+}
+
+.menu-button {
+    font-size: 18px;
+    padding: 12px 35px;
+    margin: 12px;
+    background-color: rgba(15, 0, 15, 0.8);
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    cursor: pointer;
+    text-shadow: var(--text-glow);
+    box-shadow: 0 0 10px var(--primary-color);
+    transition: all 0.3s ease;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.menu-button:hover {
+    background-color: var(--primary-color);
+    color: var(--bg-dark);
+    box-shadow: 0 0 20px var(--primary-color);
+    transform: scale(1.05);
+}
+
+.menu-button:active {
+    transform: scale(0.98);
+}
+
+/* Game Over Screen */
+#game-over-screen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    pointer-events: all;
+}
+
+#game-over-screen.hidden {
+    display: none;
+    pointer-events: none;
+}
+
+.game-over-title {
+    font-size: 64px;
+    color: var(--danger-color);
+    margin-bottom: 30px;
+    text-shadow: var(--danger-glow);
+    font-weight: bold;
+    animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.game-over-text {
+    font-size: 24px;
+    color: var(--primary-color);
+    margin: 20px;
+    text-shadow: var(--text-glow);
+}
+
+.night-clear {
+    font-size: 48px;
+    color: #00ff00;
+    margin: 30px;
+    text-shadow: 0 0 20px #00ff00;
+}
+
+/* Animatronic Status */
+.animatronic-status {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.animatronic-card {
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--primary-color);
+    padding: 10px;
+    border-radius: 3px;
+    min-width: 120px;
+}
+
+.animatronic-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.animatronic-threat {
+    color: var(--primary-color);
+    font-size: 12px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .menu-title {
+        font-size: 48px;
+    }
+    
+    .camera-feed {
+        width: 400px;
+        height: 280px;
+    }
+    
+    .threat-bar {
+        width: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hud-element {
+        font-size: 12px;
+    }
+    
+    .camera-feed {
+        width: 300px;
+        height: 200px;
+    }
+    
+    .menu-button {
+        font-size: 14px;
+        padding: 10px 20px;
+    }
+}
+
+/* Animation for HUD updates */
+@keyframes pop {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.hud-update {
+    animation: pop 0.3s ease;
+}
