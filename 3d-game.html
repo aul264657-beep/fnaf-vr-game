@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNAF VR - 3D Immersive Experience</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            overflow: hidden;
+        }
+        
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .hud-panel {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #0f0;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 15px;
+            box-shadow: 0 0 20px #0f0;
+            text-shadow: 0 0 10px #0f0;
+        }
+        
+        #power-panel {
+            top: 20px;
+            left: 20px;
+            min-width: 250px;
+        }
+        
+        #time-panel {
+            top: 20px;
+            right: 20px;
+            min-width: 200px;
+        }
+        
+        #threat-panel {
+            bottom: 20px;
+            left: 20px;
+            min-width: 300px;
+        }
+        
+        #camera-panel {
+            bottom: 20px;
+            right: 20px;
+            min-width: 250px;
+        }
+        
+        .panel-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 5px;
+        }
+        
+        .panel-line {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .threat-bar {
+            width: 100%;
+            height: 20px;
+            border: 1px solid #0f0;
+            margin-top: 10px;
+            background: rgba(0, 26, 0, 0.8);
+        }
+        
+        .threat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0f0, #ffff00, #ff0000);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 2px solid #0f0;
+            pointer-events: none;
+        }
+        
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: #0f0;
+        }
+        
+        #crosshair::before {
+            width: 2px;
+            height: 15px;
+            left: 50%;
+            top: -20px;
+            transform: translateX(-50%);
+        }
+        
+        #crosshair::after {
+            width: 15px;
+            height: 2px;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        #menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: all;
+        }
+        
+        #menu.hidden {
+            display: none;
+            pointer-events: none;
+        }
+        
+        .menu-title {
+            font-size: 60px;
+            color: #ff0000;
+            margin-bottom: 30px;
+            text-shadow: 0 0 30px #ff0000;
+            font-weight: bold;
+        }
+        
+        .menu-button {
+            background: rgba(15, 0, 0, 0.8);
+            border: 2px solid #0f0;
+            color: #0f0;
+            padding: 15px 40px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px #0f0;
+        }
+        
+        .menu-button:hover {
+            background: #0f0;
+            color: #000;
+            box-shadow: 0 0 20px #0f0;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: all;
+        }
+        
+        #game-over.hidden {
+            display: none;
+            pointer-events: none;
+        }
+        
+        .game-over-title {
+            font-size: 72px;
+            color: #ff0000;
+            margin-bottom: 20px;
+            text-shadow: 0 0 40px #ff0000;
+            animation: flicker 0.15s infinite;
+        }
+        
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .controls-hint {
+            color: #0f0;
+            text-align: center;
+            margin-top: 40px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="hud">
+        <div id="crosshair"></div>
+        
+        <div id="power-panel" class="hud-panel">
+            <div class="panel-title">⚡ POWER SYSTEMS</div>
+            <div class="panel-line">POWER: <span id="power-text">100</span>%</div>
+            <div class="panel-line">STATUS: <span id="power-status" style="color: #0f0;">OPERATIONAL</span></div>
+            <div class="threat-bar">
+                <div class="threat-fill" id="power-bar" style="width: 100%;"></div>
+            </div>
+        </div>
+        
+        <div id="time-panel" class="hud-panel">
+            <div class="panel-title">📅 NIGHT PROGRESS</div>
+            <div class="panel-line">NIGHT: <span id="night-text">1</span></div>
+            <div class="panel-line">TIME: <span id="time-text">08:00</span></div>
+        </div>
+        
+        <div id="threat-panel" class="hud-panel">
+            <div class="panel-title">⚠️ THREAT LEVEL</div>
+            <div class="threat-bar">
+                <div class="threat-fill" id="threat-bar" style="width: 0%;"></div>
+            </div>
+            <div class="panel-line" id="threat-text" style="margin-top: 10px;">THREAT: 0%</div>
+            <div id="animatronic-alerts" style="margin-top: 10px; font-size: 12px;"></div>
+        </div>
+        
+        <div id="camera-panel" class="hud-panel">
+            <div class="panel-title">📷 CAMERA SYSTEM</div>
+            <div class="panel-line">STATUS: <span id="camera-status">READY</span></div>
+            <div class="panel-line" style="font-size: 12px; margin-top: 10px;">C - Toggle Camera</div>
+            <div class="panel-line" style="font-size: 12px;">1-4 - Switch View</div>
+        </div>
+    </div>
+    
+    <div id="menu">
+        <div class="menu-title">☠ FNAF VR ☠</div>
+        <div style="color: #0f0; font-size: 24px; margin-bottom: 30px; text-shadow: 0 0 10px #0f0;">Five Nights at Freddy's</div>
+        <button class="menu-button" onclick="startGame()">▶ START GAME</button>
+        <button class="menu-button" onclick="showHelp()">? HELP</button>
+        <div class="controls-hint">
+            <strong>LOOK AROUND:</strong> Move Mouse<br>
+            <strong>MOVE:</strong> WASD<br>
+            <strong>DOORS:</strong> E Key<br>
+            <strong>LIGHTS:</strong> L Key<br>
+            <strong>CAMERA:</strong> C Key<br>
+            <strong>MENU:</strong> ESC Key
+        </div>
+    </div>
+    
+    <div id="game-over" class="hidden">
+        <div class="game-over-title" id="game-over-title">GAME OVER</div>
+        <div style="color: #0f0; font-size: 28px; margin: 30px;" id="game-over-message"></div>
+        <button class="menu-button" onclick="location.reload()">🔄 RESTART GAME</button>
+    </div>
+
+    <script>
+        // Three.js Setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0a);
+        scene.fog = new THREE.Fog(0x0a0a0a, 50, 100);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.7, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFShadowShadowMap;
+        document.body.appendChild(renderer.domElement);
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x444444);
+        scene.add(ambientLight);
+        
+        const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        mainLight.position.set(5, 10, 5);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        scene.add(mainLight);
+        
+        // Office Environment
+        const geometry = new THREE.BoxGeometry(10, 3, 10);
+        const material = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+        const room = new THREE.Mesh(geometry, material);
+        room.receiveShadow = true;
+        room.position.y = 1.5;
+        scene.add(room);
+        
+        // Walls
+        const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        
+        // Back wall
+        const backWall = new THREE.Mesh(new THREE.PlaneGeometry(10, 3), wallMaterial);
+        backWall.position.z = -5;
+        backWall.position.y = 1.5;
+        scene.add(backWall);
+        
+        // Front wall (open)
+        const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(10, 3), wallMaterial);
+        leftWall.rotation.y = Math.PI / 2;
+        leftWall.position.x = -5;
+        leftWall.position.y = 1.5;
+        scene.add(leftWall);
+        
+        const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(10, 3), wallMaterial);
+        rightWall.rotation.y = Math.PI / 2;
+        rightWall.position.x = 5;
+        rightWall.position.y = 1.5;
+        scene.add(rightWall);
+        
+        // Floor
+        const floorGeom = new THREE.PlaneGeometry(10, 10);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a });
+        const floor = new THREE.Mesh(floorGeom, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+        
+        // Desk
+        const deskGeom = new THREE.BoxGeometry(3, 0.8, 1.5);
+        const deskMat = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+        const desk = new THREE.Mesh(deskGeom, deskMat);
+        desk.position.set(2, 0.4, 3);
+        desk.castShadow = true;
+        desk.receiveShadow = true;
+        scene.add(desk);
+        
+        // Monitors on desk
+        const monitorGeom = new THREE.BoxGeometry(1, 0.6, 0.1);
+        const monitorMat = new THREE.MeshStandardMaterial({ color: 0x001100, emissive: 0x00ff00 });
+        
+        const monitor1 = new THREE.Mesh(monitorGeom, monitorMat);
+        monitor1.position.set(1, 1.2, 2.8);
+        monitor1.castShadow = true;
+        scene.add(monitor1);
+        
+        const monitor2 = new THREE.Mesh(monitorGeom, monitorMat);
+        monitor2.position.set(3, 1.2, 2.8);
+        monitor2.castShadow = true;
+        scene.add(monitor2);
+        
+        // Animatronics (simple representations)
+        const animatronics = [];\n        const animNames = ['Freddy', 'Bonnie', 'Chica', 'Foxy'];
+        const animColors = [0x8b4513, 0x4b0082, 0xffd700, 0xdc143c];
+        
+        animNames.forEach((name, i) => {
+            const geom = new THREE.BoxGeometry(0.5, 1.5, 0.5);
+            const mat = new THREE.MeshStandardMaterial({ color: animColors[i] });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.position.set(Math.random() * 8 - 4, 0.75, Math.random() * 8 - 4);
+            scene.add(mesh);
+            
+            animatronics.push({
+                name: name,
+                mesh: mesh,
+                threat: 0,
+                position: mesh.position.clone(),
+                speed: Math.random() * 0.5 + 0.2
+            });
+        });
+        
+        // Game State
+        const gameState = {
+            playing: false,
+            night: 1,
+            timeRemaining: 480,
+            power: 100,
+            threat: 0,
+            doorsClosed: false,
+            lightsOn: true,
+            cameraActive: false,
+            startTime: Date.now()
+        };
+        
+        // Input Handling
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            
+            if (e.key.toLowerCase() === 'escape') {
+                gameState.playing = false;
+                document.getElementById('menu').classList.remove('hidden');
+            }
+            if (e.key.toLowerCase() === 'e') {
+                gameState.doorsClosed = !gameState.doorsClosed;
+            }
+            if (e.key.toLowerCase() === 'l') {
+                gameState.lightsOn = !gameState.lightsOn;
+                ambientLight.intensity = gameState.lightsOn ? 0.6 : 0.1;
+            }
+            if (e.key.toLowerCase() === 'c') {
+                gameState.cameraActive = !gameState.cameraActive;
+            }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+        
+        // Mouse Look
+        let euler = new THREE.Euler(0, 0, 0, 'YXZ');
+        let PI_2 = Math.PI / 2;
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!gameState.playing) return;
+            euler.setFromQuaternion(camera.quaternion);
+            euler.rotateY(-e.movementX * 0.002);
+            euler.rotateX(-e.movementY * 0.002);
+            euler.x = Math.max(-PI_2, Math.min(PI_2, euler.x));
+            camera.quaternion.setFromEuler(euler);
+        });
+        
+        document.addEventListener('click', () => {
+            if (gameState.playing) renderer.domElement.requestPointerLock();
+        });
+        
+        function startGame() {
+            document.getElementById('menu').classList.add('hidden');
+            gameState.playing = true;
+            gameState.startTime = Date.now();
+            renderer.domElement.requestPointerLock();
+        }
+        
+        function showHelp() {
+            alert('CONTROLS:\\n\\nMouse - Look Around\\nWASD - Move\\nE - Toggle Doors\\nL - Toggle Lights\\nC - Toggle Camera\\nESC - Menu\\n\\nSurvive 6 nights and manage your power!');
+        }
+        
+        // Update Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (gameState.playing) {
+                // Movement
+                const speed = 0.1;
+                if (keys['w']) camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()), speed);
+                if (keys['s']) camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()), -speed);
+                if (keys['a']) camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()).cross(camera.up), -speed);
+                if (keys['d']) camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()).cross(camera.up), speed);
+                
+                // Update time
+                gameState.timeRemaining = Math.max(0, 480 - (Date.now() - gameState.startTime) / 1000);
+                
+                // Power drain
+                gameState.power -= 0.01;
+                gameState.power = Math.max(0, gameState.power);
+                
+                // Update animatronics
+                gameState.threat = 0;
+                animatronics.forEach(anim => {
+                    // Simple AI movement
+                    anim.mesh.position.x += (Math.random() - 0.5) * 0.01;
+                    anim.mesh.position.z += (Math.random() - 0.5) * 0.01;
+                    
+                    // Keep in bounds
+                    anim.mesh.position.clamp(new THREE.Vector3(-4, 0, -4), new THREE.Vector3(4, 2, 4));
+                    
+                    // Calculate threat
+                    const distance = camera.position.distanceTo(anim.mesh.position);
+                    anim.threat = Math.max(0, 1 - (distance / 10));
+                    gameState.threat += anim.threat / 4;
+                });
+                
+                gameState.threat = Math.min(1, gameState.threat);
+                
+                // Check win/lose
+                if (gameState.timeRemaining <= 0) {
+                    gameState.playing = false;
+                    document.getElementById('game-over-title').textContent = '✓ NIGHT SURVIVED';
+                    document.getElementById('game-over-title').style.color = '#00ff00';
+                    document.getElementById('game-over-message').textContent = `You survived Night ${gameState.night}!`;
+                    document.getElementById('game-over').classList.remove('hidden');
+                }
+                
+                if (gameState.threat >= 1) {
+                    gameState.playing = false;
+                    document.getElementById('game-over-title').textContent = '✗ GAME OVER';
+                    document.getElementById('game-over-title').style.color = '#ff0000';
+                    document.getElementById('game-over-message').textContent = 'You were caught by an animatronic!';
+                    document.getElementById('game-over').classList.remove('hidden');
+                }
+                
+                // Update HUD
+                document.getElementById('power-text').textContent = Math.round(gameState.power);
+                document.getElementById('power-bar').style.width = gameState.power + '%';
+                document.getElementById('power-status').textContent = gameState.power <= 0 ? 'POWER OUT' : 'OPERATIONAL';
+                document.getElementById('power-status').style.color = gameState.power <= 0 ? '#ff0000' : '#0f0';
+                
+                const minutes = Math.floor(gameState.timeRemaining / 60);
+                const seconds = Math.floor(gameState.timeRemaining % 60);
+                document.getElementById('time-text').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                document.getElementById('night-text').textContent = gameState.night;
+                
+                document.getElementById('threat-bar').style.width = (gameState.threat * 100) + '%';
+                document.getElementById('threat-text').textContent = 'THREAT: ' + Math.round(gameState.threat * 100) + '%';
+                
+                // Animatronic alerts
+                let alerts = '';
+                animatronics.forEach(anim => {
+                    if (anim.threat > 0.3) {
+                        alerts += `⚠ ${anim.name}: ${Math.round(anim.threat * 100)}%<br>`;
+                    }
+                });
+                document.getElementById('animatronic-alerts').innerHTML = alerts;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
